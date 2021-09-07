@@ -1,0 +1,105 @@
+{
+  "name": "entry-bundle-webpack-plugin",
+  "version": "0.0.1",
+  "description": "Webpack plugin that generates an entry file",
+  "license": "MIT",
+  "repository": "zedwang/entry-bundle-webpack-plugin",
+  "author": "Zed Wong <woox.wzd@gmail.com>",
+  "homepage": "https://github.com/zedwang/entry-bundle-webpack-plugin",
+  "bugs": "https://github.com/zedwang/entry-bundle-webpack-plugin/issues",
+  "main": "lib/index.js",
+  "engines": {
+    "node": ">=10.22.1"
+  },
+  "scripts": {
+    "build": "tsc",
+    "ci:coverage": "nyc npm run ci:test && nyc report --reporter=text-lcov > coverage.lcov",
+    "ci:lint": "npm run lint && npm run security",
+    "ci:test": "npm run test -- --verbose",
+    "lint": "npm run lint:docs && npm run lint:json && npm run lint:package && npm run lint:js",
+    "lint-staged": "lint-staged",
+    "lint:docs": "prettier --single-quote --arrow-parens avoid --trailing-comma none --write README.md",
+    "lint:js": "eslint --fix --cache lib test",
+    "lint:json": "prettier --write codecov.yml .circleci/config.yml .eslintrc",
+    "lint:package": "prettier --write package.json --plugin=prettier-plugin-package",
+    "posttest": "node set-webpack-version.js \"^4.44.2\" && npm install",
+    "security": "npm audit --audit-level=moderate",
+    "test": "npm run test:v4 && npm run test:v5",
+    "test:v4": "ava",
+    "test:v5": "node set-webpack-version.js \"^5\" && npm install && ava"
+  },
+  "files": [
+    "lib",
+    "README.md",
+    "LICENSE"
+  ],
+  "peerDependencies": {
+    "webpack": "^4.44.2 || ^5.47.0"
+  },
+  "dependencies": {
+    "tapable": "^2.2.0",
+    "webpack-sources": "^2.2.0"
+  },
+  "devDependencies": {
+    "@ava/babel": "^1.0.1",
+    "@svgr/webpack": "^5.4.0",
+    "@types/node": "^16.4.8",
+    "@types/webpack": "^5.28.0",
+    "@types/webpack-sources": "^2.1.1",
+    "@typescript-eslint/eslint-plugin": "^4.31.0",
+    "@typescript-eslint/parser": "^4.31.0",
+    "ava": "^3.13.0",
+    "codecov": "^3.1.0",
+    "copy-webpack-plugin": "^6.2.1",
+    "css-loader": "^1.0.0",
+    "del": "^6.0.0",
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-config-shellscape": "^2.1.0",
+    "eslint-plugin-prettier": "^3.4.0",
+    "extract-text-webpack-plugin": "^3.0.2",
+    "file-loader": "^2.0.0",
+    "html-webpack-plugin": "^5.3.2",
+    "lint-staged": "^10.4.0",
+    "memory-fs": "^0.4.1",
+    "mini-css-extract-plugin": "^2.1.0",
+    "moment": "^2.29.1",
+    "nyc": "^15.1.0",
+    "pre-commit": "^1.2.2",
+    "prettier": "^2.1.2",
+    "prettier-plugin-package": "^1.2.0",
+    "react": "^16.3.2",
+    "style-loader": "^0.23.0",
+    "typescript": "^4.3.5",
+    "webpack": "^5.47.1",
+    "webpack-merge": "^5.2.0"
+  },
+  "ava": {
+    "files": [
+      "!**/fixtures/**",
+      "!**/helpers/**",
+      "!**/output/**"
+    ]
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "coverageDirectory": "./coverage/",
+    "collectCoverage": true
+  },
+  "lint-staged": {
+    "*.js": [
+      "eslint --fix"
+    ]
+  },
+  "maintainers": [
+    "Zed Wong <woox.wzd@sgmail.com>"
+  ],
+  "nyc": {
+    "include": [
+      "lib/*.js"
+    ],
+    "exclude": [
+      "test/"
+    ]
+  },
+  "pre-commit": "lint-staged"
+}

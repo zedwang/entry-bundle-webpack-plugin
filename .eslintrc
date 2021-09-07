@@ -1,0 +1,22 @@
+{
+  "parser": "@typescript-eslint/parser",
+    "extends":["plugin:prettier/recommended",
+      "prettier"],
+    "globals": {
+      "jasmine": true
+    },
+    "plugins": ["prettier", "@typescript-eslint"],
+    "rules": {
+      "no-void": "off",
+      "prettier/prettier": [
+        "error",
+        {
+          "arrowParens": "always",
+          "printWidth": 100,
+          "singleQuote": true,
+          "trailingComma": "none",
+          "plugins": ["prettier-plugin-package"]
+        }
+      ]
+    }
+  }
