@@ -4,7 +4,7 @@
   "description": "Webpack plugin that generates an entry file",
   "license": "MIT",
   "repository": "zedwang/entry-bundle-webpack-plugin",
-  "author": "Zed Wong <woox.wzd@gmail.com>",
+  "author": "Zed Wang <woox.wzd@gmail.com>",
   "homepage": "https://github.com/zedwang/entry-bundle-webpack-plugin",
   "bugs": "https://github.com/zedwang/entry-bundle-webpack-plugin/issues",
   "main": "lib/index.js",

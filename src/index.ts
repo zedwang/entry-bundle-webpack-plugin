@@ -23,8 +23,6 @@ interface AttrOption {
 
 interface EmitHook {
     compiler: Compiler;
-    entryFileNameId: string;
-    entryFileName: string;
     options: EntryBundleOption;
 }
 
@@ -33,7 +31,7 @@ interface EmitCompilation {
 }
 
 const defaults = {
-    filename: "[name].[hash].entry.js",
+    filename: "[name].bundle.js",
     publicPath: null,
     attrs: {},
 }
@@ -55,14 +53,12 @@ class EntryBundleWebpackPlugin implements WebpackPluginInstance  {
             this.options.filename += '.js'
         }
 
-        const entryFileName = resolve(compiler.options.output.path || './', this.options.filename);
         
-        const entryFileNameId = relative(compiler.options.output.path || './', entryFileName);
 
         const emit = this.emitHook.bind(this, {
             compiler,
-            entryFileNameId,
-            entryFileName,
+            // entryFileNameId,
+            // entryFileName,
             options: this.options
         });
 
@@ -80,7 +76,7 @@ class EntryBundleWebpackPlugin implements WebpackPluginInstance  {
         }
     }
 
-    replacePlaceholders (filename: string, fileContent: string, compilation: Compilation) {
+    replacePlaceholders (filename: string, fileContent: string, compilation: Compilation, entryName: string) {
         if (/\[\\*([\w:]+)\\*\]/i.test(filename) === false) {
           return { path: filename, info: {} };
         }
@@ -91,12 +87,14 @@ class EntryBundleWebpackPlugin implements WebpackPluginInstance  {
         }
         let contentHash = hash.digest(compilation.outputOptions.hashDigest).slice(0, compilation.outputOptions.hashDigestLength);
         contentHash = typeof contentHash !== "string" ? contentHash.toString() : contentHash;
+
+        const name = filename.replace(/\[name\]/g, entryName)
         return compilation.getPathWithInfo(
-          filename,
+          name,
           {
             contentHash,
             chunk: {
-                id:filename,
+                id:name,
               hash: contentHash,
               contentHash: {contentHash}
             }
@@ -109,17 +107,17 @@ class EntryBundleWebpackPlugin implements WebpackPluginInstance  {
         return filePath.split("/").map(encodeURIComponent).join("/");
     }
 
-    addFileToAssets(filename: string, content: string, compilation: Compilation) {
-        return Promise.resolve(new RawSource(content))
-        .then((rawSource) => {
-            const bn = basename(filename);
-            compilation.fileDependencies.add(filename);
-            (compilation as EmitCompilation).emitAsset(bn, rawSource);
-            return bn;
-        })
-    }
+    // addFileToAssets(filename: string, content: string, compilation: Compilation) {
+    //     return Promise.resolve(new RawSource(content))
+    //     .then((rawSource) => {
+    //         const bn = basename(filename);
+    //         compilation.fileDependencies.add(filename);
+    //         (compilation as EmitCompilation).emitAsset(bn, rawSource);
+    //         return bn;
+    //     })
+    // }
 
-    emitHook({ entryFileNameId,entryFileName, options }: EmitHook, compilation: Compilation) {
+    emitHook({ options }: EmitHook, compilation: Compilation) {
         const stats = compilation.getStats().toJson({
             all: false,
             assets: true,
@@ -128,30 +126,26 @@ class EntryBundleWebpackPlugin implements WebpackPluginInstance  {
             publicPath: true
         });
 
+        
+
         const publicPath = (options.publicPath !== null ? options.publicPath : stats.publicPath)?.replace(/^auto/, '');
        
         const entryNames = Array.from(compilation.entrypoints.keys());
         const entryPointPublicPathMap: {[key: string]: boolean} = {};
         const extensionRegexp = /\.(css|js|mjs)(\?|$)/;
+        const assets: {
+            [key: string]: {[key: string]: string[]};
+        } = {};
         for (let i = 0; i < entryNames.length; i++) {
             const entryName = entryNames[i];
+            assets[entryName] = {js: [], css: []};
             const entryPointFiles = compilation.entrypoints.get(entryName)?.getFiles() || [];
             let entryPointPublicPaths = entryPointFiles.map((chunkFile) => {
                 const entryPointPublicPath = publicPath + this.urlencodePath(chunkFile);
                 return entryPointPublicPath;
             });
 
-            const assets: {
-                [key: string]: string[];
-            } = {
-                js: [],
-                css: [],
-            };
-            const output = new StringBuilder();
-            // head
-            output.append('!(function(){');
-                      
-            entryPointPublicPaths.forEach((entryPointPublicPath) => {
+             entryPointPublicPaths.forEach((entryPointPublicPath) => {
                 const extMatch = extensionRegexp.exec(entryPointPublicPath);
                 if (!extMatch) {
                     return;
@@ -161,31 +155,46 @@ class EntryBundleWebpackPlugin implements WebpackPluginInstance  {
                 }
                 entryPointPublicPathMap[entryPointPublicPath] = true;
                 const ext = extMatch[1] === "mjs" ? "js" : extMatch[1];
-                assets[ext].push(entryPointPublicPath);
+                assets[entryName][ext].push(entryPointPublicPath);
             });
+        }
 
-            output.append(`var css = [${assets.css.map(f => `"${f}"`).join(',')}], js = [${assets.js.map(f => `"${f}"`).join(',')}], publicPath = "${publicPath || ""}";`)
+        // clear
+        compilation.entrypoints.clear();
+
+        for (let i = 0; i < entryNames.length; i++) {
+            const entryName = entryNames[i];
+            const output = new StringBuilder();
+            // head
+            output.append('!(function(){');
+            // body
+            output.append(`var css = [${assets[entryName].css.map(f => `"${f}"`).join(',')}], js = [${assets[entryName].js.map(f => `"${f}"`).join(',')}], publicPath = "${publicPath || ""}";`)
             output.append(`css.forEach(f => {var ol = document.createElement('link');ol.href = f;ol.rel='stylesheet';document.head.appendChild(ol);});`)
             output.append(`js.forEach(f => {var os = document.createElement('script');os.src = f;document.head.appendChild(os);})`)
-            
             // foot
             output.append(`})()`);
+            
+            const replacedInfo = this.replacePlaceholders(this.options.filename, output.toString(), compilation, entryName);
+            // full path
+            const entryFileName = resolve(this.compiler.options.output.path || './', replacedInfo.path);
+            // relative name only
+            const entryFileNameId = relative(this.compiler.options.output.path || './', entryFileName);
 
-            const optionFilename = entryFileName.replace(/\[name\]/g, entryName)
-            const optionFilenameId = entryFileNameId.replace(/\[name\]/g, entryName)
-
-            const chunk = compilation.addChunk(optionFilename);
-            chunk.filenameTemplate = optionFilenameId;
-            chunk.files.add(publicPath + optionFilenameId);
-
-            const entrypoint = new Entrypoint(optionFilenameId);
+            const chunk = compilation.addChunk(entryFileNameId);
+            chunk.filenameTemplate = this.options.filename;
+            chunk.files.add(publicPath + entryFileNameId);
+            const entrypoint = new Entrypoint(entryFileNameId);
+            
             entrypoint.setEntrypointChunk(chunk);
 
-            compilation.namedChunkGroups.set(optionFilenameId, entrypoint);
-            compilation.entrypoints.set(optionFilenameId, entrypoint);
             compilation.entrypoints.set(entryFileNameId, entrypoint);
-            const realName = this.replacePlaceholders(optionFilenameId, output.toString(), compilation);
-            (compilation as EmitCompilation).emitAsset(realName.path, new RawSource(output.toString()), realName.info)
+
+            if (entrypoint.pushChunk(chunk)) {
+                chunk.addGroup(entrypoint);
+            }
+            
+            (compilation as EmitCompilation).emitAsset(entryFileNameId, new RawSource(output.toString()), replacedInfo.info)
+
         }
     }
 }

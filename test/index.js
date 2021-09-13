@@ -5,24 +5,11 @@ const del = require('del');
 const webpack = require('webpack');
 const EntryBundleWebpackPlugin = require('../lib');
 const compile = require('./helper/compile');
-const { SyncWaterfallHook } = require('tapable');
-const hashLiteral = webpack.version.startsWith('4') ? '[hash]' : '[fullhash]';
 const outputPath = join(__dirname, '../output/');
-test.after(() => del(outputPath));
-
-test('exports', async (t) => {
-    t.truthy(EntryBundleWebpackPlugin);
-
-    let hooks = {
-        afterEmit: new SyncWaterfallHook(['EntryBundle']),
-        beforeEmit: new SyncWaterfallHook(['EntryBundle'])
-    };
-    t.snapshot(Object.keys(hooks));
-});
+test.beforeEach(() => del(outputPath));
 
 test('outputs all entries of one file', async (t) => {
     const config = {
-        // context: __dirname,
         entry: join(__dirname, './fixtures/index.js'),
         output: {
             path: outputPath,
@@ -31,7 +18,7 @@ test('outputs all entries of one file', async (t) => {
             chunkFilename: 'js/[name]-[contenthash].js'
         }
     };
-    const { entry } = await compile(config, t, { filename: 'entry.[contenthash].js' });
+    const { entry } = await compile(config, t, { filename: 'main.js' });
     t.truthy(entry);
     t.deepEqual(entry, { 'main.js': 'main.js' });
 });

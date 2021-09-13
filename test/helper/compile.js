@@ -57,29 +57,15 @@ const compile = (config, t, entryOptions = {}) => {
     const configs = flatten([config].map((options) => prepare(options, entryOptions)));
     const compiler = webpack(configs);
 
-    return new Promise((p, f) => {
+    return new Promise((p) => {
         compiler.run((error, stats) => {
-            if (error) {
-                f(error);
-                return;
-            }
-
-            const outputPath = [].concat(configs)[0].output.path;
-            let entryPath = join(outputPath, entryOptions.filename);
-
-            if (isAbsolute(entryOptions.filename || '')) {
-                entryPath = entryOptions.filename;
-            }
-            const entry = entryPath;
-
+            t.falsy(error);
             if (stats.hasErrors()) {
-                // log('Stat Errors', stats.toJson());
-                log('Stat Errors', stats.toString());
+                log(stats.toJson());
             }
-
             t.is(stats.hasErrors(), false);
 
-            p({ fs, entry, stats });
+            p(stats);
         });
     });
 };
