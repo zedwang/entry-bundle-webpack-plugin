@@ -1,5 +1,5 @@
 import webpack, { Compiler, WebpackPluginInstance, Compilation } from "webpack";
-import { extname, relative, resolve, basename } from 'path';
+import { extname, relative, resolve } from 'path';
 // @ts-ignore
 import NormalModule from 'webpack/lib/NormalModule';
 // @ts-ignore
@@ -38,7 +38,6 @@ const defaults = {
 
 
 class EntryBundleWebpackPlugin implements WebpackPluginInstance  {
-    public static version = 1;
     private options: EntryBundleOption;
     private compiler: Compiler = new Compiler('');
     constructor(opts: Partial<EntryBundleOption>) {
@@ -57,8 +56,6 @@ class EntryBundleWebpackPlugin implements WebpackPluginInstance  {
 
         const emit = this.emitHook.bind(this, {
             compiler,
-            // entryFileNameId,
-            // entryFileName,
             options: this.options
         });
 
@@ -76,7 +73,7 @@ class EntryBundleWebpackPlugin implements WebpackPluginInstance  {
         }
     }
 
-    replacePlaceholders (filename: string, fileContent: string, compilation: Compilation, entryName: string) {
+    replacePlaceholders (filename: string, fileContent: string, compilation: Compilation) {
         if (/\[\\*([\w:]+)\\*\]/i.test(filename) === false) {
           return { path: filename, info: {} };
         }
@@ -88,13 +85,12 @@ class EntryBundleWebpackPlugin implements WebpackPluginInstance  {
         let contentHash = hash.digest(compilation.outputOptions.hashDigest).slice(0, compilation.outputOptions.hashDigestLength);
         contentHash = typeof contentHash !== "string" ? contentHash.toString() : contentHash;
 
-        const name = filename.replace(/\[name\]/g, entryName)
         return compilation.getPathWithInfo(
-          name,
+            filename,
           {
             contentHash,
             chunk: {
-                id:name,
+                id: filename,
               hash: contentHash,
               contentHash: {contentHash}
             }
@@ -107,16 +103,6 @@ class EntryBundleWebpackPlugin implements WebpackPluginInstance  {
         return filePath.split("/").map(encodeURIComponent).join("/");
     }
 
-    // addFileToAssets(filename: string, content: string, compilation: Compilation) {
-    //     return Promise.resolve(new RawSource(content))
-    //     .then((rawSource) => {
-    //         const bn = basename(filename);
-    //         compilation.fileDependencies.add(filename);
-    //         (compilation as EmitCompilation).emitAsset(bn, rawSource);
-    //         return bn;
-    //     })
-    // }
-
     emitHook({ options }: EmitHook, compilation: Compilation) {
         const stats = compilation.getStats().toJson({
             all: false,
@@ -125,8 +111,6 @@ class EntryBundleWebpackPlugin implements WebpackPluginInstance  {
             ids: true,
             publicPath: true
         });
-
-        
 
         const publicPath = (options.publicPath !== null ? options.publicPath : stats.publicPath)?.replace(/^auto/, '');
        
@@ -174,7 +158,7 @@ class EntryBundleWebpackPlugin implements WebpackPluginInstance  {
             // foot
             output.append(`})()`);
             
-            const replacedInfo = this.replacePlaceholders(this.options.filename, output.toString(), compilation, entryName);
+            const replacedInfo = this.replacePlaceholders(this.options.filename.replace(/\[name\]/g, entryName), output.toString(), compilation);
             // full path
             const entryFileName = resolve(this.compiler.options.output.path || './', replacedInfo.path);
             // relative name only
@@ -187,7 +171,7 @@ class EntryBundleWebpackPlugin implements WebpackPluginInstance  {
             
             entrypoint.setEntrypointChunk(chunk);
 
-            compilation.entrypoints.set(entryFileNameId, entrypoint);
+            compilation.entrypoints.set(`${entryName}.js`, entrypoint);
 
             if (entrypoint.pushChunk(chunk)) {
                 chunk.addGroup(entrypoint);
