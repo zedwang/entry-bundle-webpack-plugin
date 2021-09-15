@@ -1,8 +1,6 @@
 const webpack = require('webpack');
 const { merge } = require('webpack-merge');
-const { join, isAbsolute } = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-const fs = require('fs');
 const EntryBundleWebpackPlugin = require('../../lib');
 
 const { log } = console;
@@ -53,7 +51,7 @@ const applyDefaults = (webpackOpts, entryOptions) => {
     return merge(defaults, webpackOpts);
 };
 
-const compile = (config, t, entryOptions = {}) => {
+function compile(config, t, entryOptions = {}) {
     const configs = flatten([config].map((options) => prepare(options, entryOptions)));
     const compiler = webpack(configs);
 
@@ -64,10 +62,9 @@ const compile = (config, t, entryOptions = {}) => {
                 log(stats.toJson());
             }
             t.is(stats.hasErrors(), false);
-
             p(stats);
         });
     });
-};
+}
 
 module.exports = compile;

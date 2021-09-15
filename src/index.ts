@@ -1,5 +1,5 @@
 import webpack, { Compiler, WebpackPluginInstance, Compilation } from "webpack";
-import { extname, relative, resolve, basename } from 'path';
+import { extname, relative, resolve } from 'path';
 // @ts-ignore
 import NormalModule from 'webpack/lib/NormalModule';
 // @ts-ignore
@@ -76,7 +76,7 @@ class EntryBundleWebpackPlugin implements WebpackPluginInstance  {
         }
     }
 
-    replacePlaceholders (filename: string, fileContent: string, compilation: Compilation, entryName: string) {
+    replacePlaceholders (filename: string, fileContent: string, compilation: Compilation) {
         if (/\[\\*([\w:]+)\\*\]/i.test(filename) === false) {
           return { path: filename, info: {} };
         }
@@ -88,13 +88,12 @@ class EntryBundleWebpackPlugin implements WebpackPluginInstance  {
         let contentHash = hash.digest(compilation.outputOptions.hashDigest).slice(0, compilation.outputOptions.hashDigestLength);
         contentHash = typeof contentHash !== "string" ? contentHash.toString() : contentHash;
 
-        const name = filename.replace(/\[name\]/g, entryName)
         return compilation.getPathWithInfo(
-          name,
+            filename,
           {
             contentHash,
             chunk: {
-                id:name,
+                id: filename,
               hash: contentHash,
               contentHash: {contentHash}
             }
@@ -174,7 +173,7 @@ class EntryBundleWebpackPlugin implements WebpackPluginInstance  {
             // foot
             output.append(`})()`);
             
-            const replacedInfo = this.replacePlaceholders(this.options.filename, output.toString(), compilation, entryName);
+            const replacedInfo = this.replacePlaceholders(this.options.filename.replace(/\[name\]/g, entryName), output.toString(), compilation);
             // full path
             const entryFileName = resolve(this.compiler.options.output.path || './', replacedInfo.path);
             // relative name only
@@ -187,7 +186,7 @@ class EntryBundleWebpackPlugin implements WebpackPluginInstance  {
             
             entrypoint.setEntrypointChunk(chunk);
 
-            compilation.entrypoints.set(entryFileNameId, entrypoint);
+            compilation.entrypoints.set(`${entryName}.js`, entrypoint);
 
             if (entrypoint.pushChunk(chunk)) {
                 chunk.addGroup(entrypoint);

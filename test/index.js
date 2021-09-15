@@ -2,10 +2,10 @@ const { join } = require('path');
 
 const test = require('ava');
 const del = require('del');
-const webpack = require('webpack');
-const EntryBundleWebpackPlugin = require('../lib');
 const compile = require('./helper/compile');
 const outputPath = join(__dirname, '../output/');
+const webpack = require('webpack');
+const hashLiteral = webpack.version.startsWith('4') ? '[hash]' : '[fullhash]';
 test.beforeEach(() => del(outputPath));
 
 test('outputs all entries of one file', async (t) => {
@@ -18,26 +18,26 @@ test('outputs all entries of one file', async (t) => {
             chunkFilename: 'js/[name]-[contenthash].js'
         }
     };
-    const { entry } = await compile(config, t, { filename: 'main.js' });
-    t.truthy(entry);
-    t.deepEqual(entry, { 'main.js': 'main.js' });
+    const stats = await compile(config, t, {});
+    t.truthy(stats.compilation.entrypoints.get('main.bundle.js'));
 });
 
-// test('works with hashes in the filename', async (t) => {
-//     const config = {
-//         context: __dirname,
-//         entry: {
-//             one: '../fixtures/file.js'
-//         },
-//         output: {
-//             filename: `[name].${hashLiteral}.js`,
-//             path: join(outputPath, 'hashes')
-//         }
-//     };
-//     const { entry, stats } = await compile(config, t);
-
-//     t.deepEqual(entry, { 'one.js': `one.${stats.hash}.js` });
-// });
+test('works with hashes in the filename', async (t) => {
+    const config = {
+        entry: {
+            zeed: join(__dirname, './fixtures/index.js'),
+            green: join(__dirname, './fixtures/index.js')
+        },
+        output: {
+            filename: `[name].js`,
+            path: join(outputPath, 'hashes')
+        }
+    };
+    const stats = await compile(config, t, { filename: `[name].bundle.[contenthash:6].js` });
+    // console.log(stats.compilation.entrypoints)
+    t.truthy(stats.compilation.entrypoints.get('one.js'));
+    // t.is(stats.compilation.entrypoints.get('one.js'),  `one.${stats.hash}.js`);
+});
 
 // test('works with source maps', async (t) => {
 //     const config = {
