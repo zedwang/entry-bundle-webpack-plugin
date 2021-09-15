@@ -1,0 +1,8 @@
+src
+test
+.eslintrc
+.gitignore
+.nvmrc
+.prettierignore
+.prettierrc.js
+debug.js

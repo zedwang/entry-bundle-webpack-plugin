@@ -5,10 +5,10 @@ const del = require('del');
 const compile = require('./helper/compile');
 const outputPath = join(__dirname, '../output/');
 const webpack = require('webpack');
-const hashLiteral = webpack.version.startsWith('4') ? '[hash]' : '[fullhash]';
+console.log(webpack.version);
 test.beforeEach(() => del(outputPath));
 
-test('outputs all entries of one file', async (t) => {
+test('outputs all entries in one file with default name', async (t) => {
     const config = {
         entry: join(__dirname, './fixtures/index.js'),
         output: {

@@ -38,7 +38,6 @@ const defaults = {
 
 
 class EntryBundleWebpackPlugin implements WebpackPluginInstance  {
-    public static version = 1;
     private options: EntryBundleOption;
     private compiler: Compiler = new Compiler('');
     constructor(opts: Partial<EntryBundleOption>) {
@@ -57,8 +56,6 @@ class EntryBundleWebpackPlugin implements WebpackPluginInstance  {
 
         const emit = this.emitHook.bind(this, {
             compiler,
-            // entryFileNameId,
-            // entryFileName,
             options: this.options
         });
 
@@ -106,16 +103,6 @@ class EntryBundleWebpackPlugin implements WebpackPluginInstance  {
         return filePath.split("/").map(encodeURIComponent).join("/");
     }
 
-    // addFileToAssets(filename: string, content: string, compilation: Compilation) {
-    //     return Promise.resolve(new RawSource(content))
-    //     .then((rawSource) => {
-    //         const bn = basename(filename);
-    //         compilation.fileDependencies.add(filename);
-    //         (compilation as EmitCompilation).emitAsset(bn, rawSource);
-    //         return bn;
-    //     })
-    // }
-
     emitHook({ options }: EmitHook, compilation: Compilation) {
         const stats = compilation.getStats().toJson({
             all: false,
@@ -124,8 +111,6 @@ class EntryBundleWebpackPlugin implements WebpackPluginInstance  {
             ids: true,
             publicPath: true
         });
-
-        
 
         const publicPath = (options.publicPath !== null ? options.publicPath : stats.publicPath)?.replace(/^auto/, '');
        
